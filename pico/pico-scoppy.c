@@ -33,21 +33,34 @@
 #include "pico-scoppy.h"
 #include "scoppy_usb.h"
 
+static void init_voltage_range_gpio(uint i) {
+    if (i >= 0) {
+#if AUTO_VOLTAGE_RANGE
+        gpio_init(i);
+        gpio_set_dir(i, GPIO_OUT);
+        gpio_put(i, false);
+#else        
+        gpio_init(i);
+        gpio_set_dir(i, GPIO_IN);
+        gpio_pull_down(i);
+#endif        
+    } else {
+        // This voltage range pin is not used
+    }
+}
 
 int main() {
 
     sleep_ms(200);
 
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-    gpio_put(LED_PIN, 1);
+    gpio_init(STATUS_LED_GPIO);
+    gpio_set_dir(STATUS_LED_GPIO, GPIO_OUT);
+    gpio_put(STATUS_LED_GPIO, 1);
 
-    // voltage range pins
-    for (uint i = VOLTAGE_RANGE_PIN_CH_0_BIT_1; i <= VOLTAGE_RANGE_PIN_CH_1_BIT_0; i++) {
-        gpio_init(i);
-        gpio_set_dir(i, GPIO_IN);
-        gpio_pull_down(i);
-    }
+    init_voltage_range_gpio(VR_CH1_1_GPIO);
+    init_voltage_range_gpio(VR_CH1_0_GPIO);
+    init_voltage_range_gpio(VR_CH2_1_GPIO);
+    init_voltage_range_gpio(VR_CH2_0_GPIO);
 
     LOG_PRINT("Initialising stdio\n");
     stdio_init_all();
@@ -64,7 +77,7 @@ int main() {
     pwm_sig_gen_init();
 
     LOG_PRINT("Starting\n");
-    gpio_put(LED_PIN, 0);
+    gpio_put(STATUS_LED_GPIO, 0);
     sleep_ms(100);
 
     DEBUG_PRINT("... launching core1\n");

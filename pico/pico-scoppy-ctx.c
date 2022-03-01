@@ -38,6 +38,7 @@
 #include "pico-scoppy-pwm-sig-gen.h"
 #include "pico-scoppy-samples.h"
 #include "pico-scoppy-util.h"
+#include "pico-scoppy-voltage-range.h"
 #include "pico-scoppy.h"
 #include "scoppy_usb.h"
 
@@ -70,9 +71,9 @@ void ctx_fatal_error_handler(int error) {
     // repeat indefinitely
     while (true) {
         for (int i = 0; i < error; i++) {
-            gpio_put(LED_PIN, true);
+            gpio_put(STATUS_LED_GPIO, true);
             sleep_ms(200);
-            gpio_put(LED_PIN, false);
+            gpio_put(STATUS_LED_GPIO, false);
             sleep_ms(300);
         }
 
@@ -82,7 +83,7 @@ void ctx_fatal_error_handler(int error) {
     exit(1);
 }
 
-void ctx_set_status_led(bool status) { gpio_put(LED_PIN, status); }
+void ctx_set_status_led(bool status) { gpio_put(STATUS_LED_GPIO, status); }
 
 static int ctx_write_serial(uint8_t *buf, int offset, int len) {
     if (!scoppy_usb_out_chars((char *)(buf + offset), len)) {
@@ -111,6 +112,10 @@ struct scoppy_context *pico_scoppy_get_context() {
     ctx.set_status_led = ctx_set_status_led;
     ctx.sig_gen = pwm_sig_gen;
 
+#if AUTO_VOLTAGE_RANGE
+    ctx.on_voltage_range_changed = pico_scoppy_on_voltage_range_changed;
+#endif
+
     pico_scoppy_seed_random();
     ctx.has_stdio = true;
     ctx.is_testing = false;
@@ -122,7 +127,7 @@ struct scoppy_context *pico_scoppy_get_context() {
     ctx.chipId = *((io_ro_32 *)(SYSINFO_BASE + SYSINFO_CHIP_ID_OFFSET));
 
 #ifndef PICO_SCOPPY_BUILD_NUMBER
-#error rats
+#define PICO_SCOPPY_BUILD_NUMBER 0
 #endif
 
 #if PICO_SCOPPY_BUILD_NUMBER < 0

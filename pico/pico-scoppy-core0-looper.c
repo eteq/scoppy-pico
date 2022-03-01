@@ -429,16 +429,6 @@ static bool aquisition_configuration_changed(struct scoppy_context *ctx) {
     return restart_sampling_required;
 }
 
-static uint8_t get_voltage_range_id(int channel_id) {
-    if (channel_id == 0) {
-        return (gpio_get(VOLTAGE_RANGE_PIN_CH_0_BIT_1) ? 1u : 0u) << 1 | (gpio_get(VOLTAGE_RANGE_PIN_CH_0_BIT_0) ? 1u : 0u);
-    } else if (channel_id == 1) {
-        return (gpio_get(VOLTAGE_RANGE_PIN_CH_1_BIT_1) ? 1u : 0u) << 1 | (gpio_get(VOLTAGE_RANGE_PIN_CH_1_BIT_0) ? 1u : 0u);
-    } else {
-        return 0;
-    }
-}
-
 void pico_scoppy_start_core0_loop(struct scoppy_context *ctx) {
 
     active_params->get_samples = pico_scoppy_get_null_samples;

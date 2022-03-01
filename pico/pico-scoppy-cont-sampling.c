@@ -37,6 +37,7 @@
 #include "scoppy.h"
 
 //
+#include "pico-scoppy.h"
 #include "pico-scoppy-cont-sampling.h"
 #include "pico-scoppy-samples.h"
 #include "pico-scoppy-util.h"
@@ -121,12 +122,12 @@ void pico_scoppy_stop_continuous_sampling() {
 static bool adc_read_timer_callback(repeating_timer_t *rt) {
 
     if (active_params->enabled_channels & 0x00000001) {
-        adc_select_input(0);
+        adc_select_input(GPIO_TO_ADC_INPUT(SCOPE_CH1_IN_GPIO));
         active_buffer->put(active_buffer, (adc_read() >> 4) & 0x00FF);
     }
 
     if (active_params->enabled_channels & 0x00000002) {
-        adc_select_input(1);
+        adc_select_input(GPIO_TO_ADC_INPUT(SCOPE_CH2_IN_GPIO));
         active_buffer->put(active_buffer, (adc_read() >> 4) & 0x00FF);
     }
 

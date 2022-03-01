@@ -42,6 +42,7 @@
 #include "pico-scoppy-non-cont-sampling.h"
 #include "pico-scoppy-samples.h"
 #include "pico-scoppy-util.h"
+#include "pico-scoppy.h"
 #include "scoppy-pio.h"
 
 #ifndef NDEBUG
@@ -646,7 +647,7 @@ static uint8_t wait_for_hardware_trigger(struct scoppy_context *ctx) {
         trigger_addr = NULL;
     }
 
-    // The sm might be looping waiting for a trigger. If it happens to find one while the dma_handlers are writing to the 
+    // The sm might be looping waiting for a trigger. If it happens to find one while the dma_handlers are writing to the
     // rubbish_buf then the hw_trig vars will be wrong...so we need to ensure no the pio isn't triggered until we write to the
     // fito again
     scoppy_pio_disarm_trigger(active_params);
@@ -728,7 +729,6 @@ void pico_scoppy_get_non_continuous_samples(struct scoppy_context *ctx) {
 
     uint8_t num_channels = active_params->num_enabled_channels;
     uint8_t total_bytes_per_sample = is_logic_mode ? 1 : num_channels;
-
 
 #if DEBUG_SINGLE_SHOT
     if (active_params->run_mode == RUN_MODE_SINGLE) {
@@ -1379,12 +1379,27 @@ void pico_scoppy_start_non_continuous_sampling() {
         // DEBUG_PRINT("    adc_set_round_robin: 0x%0lX, num_enabled=%u\n", (unsigned long)active_params->enabled_channels,
         // (unsigned)active_params->num_enabled_channels);
         // //sleep_ms(50);
+        
+        uint firstAdc = 0;
+        uint input_mask = 0;
+        if (active_params->enabled_channels & 0x00000002) {
+            input_mask |= 1 << GPIO_TO_ADC_INPUT(SCOPE_CH2_IN_GPIO);
+            firstAdc = GPIO_TO_ADC_INPUT(SCOPE_CH2_IN_GPIO);
+        }
 
-        // adc_set_round_robin(active_params->enabled_channels); // bug in param check code means we can't call this when PARAM_ASSERTIONS_ENABLE_ALL is defined
-        uint input_mask = active_params->enabled_channels;
+        if (active_params->enabled_channels & 0x00000001) {
+            input_mask |= 1 << GPIO_TO_ADC_INPUT(SCOPE_CH1_IN_GPIO);
+
+            // Select CH1 as the first in the round robin (if enabled)
+            firstAdc = GPIO_TO_ADC_INPUT(SCOPE_CH1_IN_GPIO);
+        }
+
         // DEBUG_PRINT("  RROBIN MASK=0x%X\n", (unsigned)input_mask);
+        // adc_set_round_robin(input_mask); // bug in param check code means we can't call this when PARAM_ASSERTIONS_ENABLE_ALL is defined
         invalid_params_if(ADC, (input_mask << ADC_CS_RROBIN_LSB) & ~ADC_CS_RROBIN_BITS);
         hw_write_masked(&adc_hw->cs, input_mask << ADC_CS_RROBIN_LSB, ADC_CS_RROBIN_BITS);
+
+        adc_select_input(firstAdc);
     }
 
     // the dma_chan2 will start automatically when dma_chan1 finishes. The chan1 interrupt

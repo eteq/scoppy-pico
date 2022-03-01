@@ -1,41 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
 #set(PICO_PLATFORM host)
-include(pico_sdk_import.cmake)
-
-##########################################
-# 
-# You can set custom values for some cmake variables in scoppy-local.cmake
-# That file is not tracked by git and so won't cause problems when you pull the
-# latest version of scoppy from github.
-#
-
-if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/scoppy-local.cmake")
-    include("${CMAKE_CURRENT_SOURCE_DIR}/scoppy-local.cmake")
-endif()
-
-if(NOT DEFINED SIG_GEN_PWM_GPIO)
-    # PWM signal generator output
-    set(SIG_GEN_PWM_GPIO 22)
-endif()
-
-if(NOT DEFINED VOLTAGE_RANGE_START_GPIO)
-    # There are 4 adjacent gpio pins used for the voltage range input.
-    set(VOLTAGE_RANGE_START_GPIO 2)
-endif()
-
-# The BUILD_NUMBER is sent to the UI.
-if(NOT DEFINED PICO_SCOPPY_BUILD_NUMBER)
-    set(PICO_SCOPPY_BUILD_NUMBER "0")
-endif()
-
-#
-# end customisation
-#
-##########################################
-
-set(PICO_SCOPPY_VERSION "8")
-set(SCOPPY_TARGET "scoppy-pico-v${PICO_SCOPPY_VERSION}")
+include($ENV{PICO_SDK_PATH}/external/pico_sdk_import.cmake)
 
 project(scoppy)
 
@@ -44,15 +10,50 @@ pico_sdk_init()
 pico_add_subdirectory(scoppy-usb)
 add_subdirectory(../scoppy/lib scoppy-lib)
 
+message(STATUS "Scoppy cmake")
+
+##########################################
+# 
+# You can set custom values for some cmake variables in scoppy-local.cmake
+# That file is not tracked by git and so won't cause problems when you pull the
+# latest version of scoppy from github.
+#
+# https://stackoverflow.com/questions/15201064/cmake-conditional-preprocessor-define-on-code
+#
+
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/scoppy-local.cmake")
+    message(STATUS "Including scoppy-local.cmake")
+    include("${CMAKE_CURRENT_SOURCE_DIR}/scoppy-local.cmake")
+
+    if(SCOPPY_COMPILE_DEFS)
+        message(STATUS "    SCOPPY_COMPILE_DEFS: ${SCOPPY_COMPILE_DEFS}")
+        add_compile_definitions(${SCOPPY_COMPILE_DEFS})
+    endif()
+
+    message(STATUS "  end local definitions")
+
+else()
+    message(STATUS "scoppy-local.cmake not found. Using default definitions.")
+endif()
+
+#
+# end customisation
+#
+##########################################
+
+set(PICO_SCOPPY_VERSION "9")
+set(SCOPPY_TARGET "scoppy-pico-v${PICO_SCOPPY_VERSION}")
+
 # applies to this directory and below
 #add_compile_options(-Wall -Werror -Wno-error=unused-variable -Werror=unused-but-set-variable -DPICO_SCOPPY_VERSION=${PICO_SCOPPY_VERSION})
 
+if(DEFINED PICO_SCOPPY_BUILD_NUMBER)
+    add_compile_definitions(PICO_SCOPPY_BUILD_NUMBER=${PICO_SCOPPY_BUILD_NUMBER})
+endif()
+
 add_compile_definitions(
     PICO_SCOPPY_VERSION=${PICO_SCOPPY_VERSION}
-    PICO_SCOPPY_BUILD_NUMBER=${PICO_SCOPPY_BUILD_NUMBER}
-    VOLTAGE_RANGE_START_GPIO=${VOLTAGE_RANGE_START_GPIO}
-    SIG_GEN_PWM_GPIO=${SIG_GEN_PWM_GPIO}
-    )
+)
 
 add_executable(${SCOPPY_TARGET})
 
@@ -69,12 +70,14 @@ target_sources(${SCOPPY_TARGET} PRIVATE
     pico-scoppy-cont-sampling.h
     pico-scoppy-non-cont-sampling.h
     pico-scoppy-non-cont-sampling.c
-    pico-scoppy-samples.c
-    pico-scoppy-samples.h
     pico-scoppy-pwm-sig-gen.c
     pico-scoppy-pwm-sig-gen.h
+    pico-scoppy-samples.c
+    pico-scoppy-samples.h
     pico-scoppy-util.c
     pico-scoppy-util.h
+    pico-scoppy-voltage-range.c
+    pico-scoppy-voltage-range.h
     scoppy-pio.c
     scoppy-pio.h
 )

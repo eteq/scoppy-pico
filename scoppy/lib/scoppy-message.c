@@ -29,8 +29,21 @@
 #include "scoppy-util/number.h"
 #include "scoppy.h"
 
+//#define VOLTAGE_RANGES {0, 0, -1100000, 1101000}, {0, 1, -123000, 181000}, {1, 0, -5000000, 5001000}, {1, 3, -3300000, 3301000},
+
+#ifdef INPUT_VOLTAGE_RANGES
+typedef struct input_voltage_range {
+    uint8_t channel_id;
+    uint8_t range_id;
+    int32_t min_voltage;
+    int32_t max_voltage;
+} input_voltage_range;
+
+static input_voltage_range input_voltage_ranges[] = {INPUT_VOLTAGE_RANGES};
+#endif
+
 struct scoppy_outgoing *scoppy_new_outgoing_sync_msg(struct scoppy_context *ctx) {
-    struct scoppy_outgoing *msg = scoppy_new_outgoing(SCOPPY_OUTGOING_MSG_TYPE_SYNC, 1);
+    struct scoppy_outgoing *msg = scoppy_new_outgoing(SCOPPY_OUTGOING_MSG_TYPE_SYNC, 2);
 
     scoppy_uint32_to_4_network_bytes(msg->payload + msg->payload_len, ctx->chipId);
     msg->payload_len += 4;
@@ -43,6 +56,44 @@ struct scoppy_outgoing *scoppy_new_outgoing_sync_msg(struct scoppy_context *ctx)
 
     scoppy_int32_to_4_network_bytes(msg->payload + msg->payload_len, ctx->build_number);
     msg->payload_len += 4;
+
+    // Misc flags
+    // bit 0: 1 for auto voltage ranges
+    uint8_t flags = 0;
+#if AUTO_VOLTAGE_RANGE
+    flags |= 0x01;
+#endif
+    msg->payload[msg->payload_len++] = flags;
+
+    // Number of Voltage ranges the hardware supports
+    // This number MUST match that below
+#ifdef INPUT_VOLTAGE_RANGES
+    //
+    // For each range
+    // Byte 0
+    //    ChannelId - bits 7-4
+    //    RangeId - bits 3 - 0
+    //
+    // MinVoltage - microvolts - 4 bytes
+    // MaxVoltage - microvolts - 4 bytes
+    //
+    int num_ranges = ARRAY_SIZE(input_voltage_ranges);
+    msg->payload[msg->payload_len++] = (uint8_t)num_ranges;
+
+    for (int i = 0; i < num_ranges; i++) {
+        uint32_t channel_and_range = input_voltage_ranges[i].channel_id << 4;
+        channel_and_range |= input_voltage_ranges[i].range_id;
+        msg->payload[msg->payload_len++] = (uint8_t)channel_and_range;
+        scoppy_int32_to_4_network_bytes(msg->payload + msg->payload_len, input_voltage_ranges[i].min_voltage);
+        msg->payload_len += 4;
+        scoppy_int32_to_4_network_bytes(msg->payload + msg->payload_len, input_voltage_ranges[i].max_voltage);
+        msg->payload_len += 4;
+    }
+
+#else
+    // num ranges
+    msg->payload[msg->payload_len++] = 0;
+#endif
 
     return msg;
 }
@@ -83,7 +134,7 @@ struct scoppy_outgoing *scoppy_new_outgoing_samples_msg(uint32_t realSampleRateH
     // 0:2 channel id
     int num_data_channels = 0;
     if (is_logic_mode) {
-        // The app expects a these values for logic mode
+        // The app expects these values for logic mode
         num_data_channels = 1;
         msg->payload[msg->payload_len++] = 0;
     } else {
@@ -365,6 +416,22 @@ static void process_sig_gen_message(struct scoppy_context *ctx) {
     ctx->sig_gen(func, gpio, freq, duty);
 }
 
+#if AUTO_VOLTAGE_RANGE
+static void process_voltage_range_changed_message(struct scoppy_context *ctx) {
+    CTX_DEBUG_PRINT(ctx, "Processing voltage range changed message\n");
+    struct scoppy_incoming *incoming = ctx->incoming;
+
+    int i = 0;
+    uint8_t channel_id = incoming->payload[i++];
+    uint8_t range_id = incoming->payload[i++];
+    scoppy.channels[channel_id].voltage_range = range_id;
+    CTX_LOG_PRINT(ctx, "  voltage range for channel %u=%u\n", (unsigned)channel_id, (unsigned)range_id);
+    ctx->on_voltage_range_changed(channel_id, range_id);
+
+    incoming->payload_ok = true;
+}
+#endif
+
 static void process_complete_incoming_message(struct scoppy_context *ctx) {
     // CTX_DEBUG_PRINT(ctx, "process_complete_incoming_message\n");
     struct scoppy_incoming *incoming = ctx->incoming;
@@ -374,7 +441,13 @@ static void process_complete_incoming_message(struct scoppy_context *ctx) {
         process_horz_scale_changed_message(ctx);
     } else if (incoming->msg_type == SCOPPY_INCOMING_MSG_TYPE_CHANNELS_CHANGED) {
         process_channels_changed_message(ctx);
-    } else if (incoming->msg_type == SCOPPY_INCOMING_MSG_TYPE_TRIGGER_CHANGED) {
+    }
+#if AUTO_VOLTAGE_RANGE
+    else if (incoming->msg_type == SCOPPY_INCOMING_MSG_TYPE_VOLTAGE_RANGE_CHANGED) {
+        process_voltage_range_changed_message(ctx);
+    }
+#endif
+    else if (incoming->msg_type == SCOPPY_INCOMING_MSG_TYPE_TRIGGER_CHANGED) {
         process_trigger_changed_message(ctx);
     } else if (incoming->msg_type == SCOPPY_INCOMING_MSG_TYPE_SELECTED_SAMPLE_RATE) {
         process_selected_sample_rate_message(ctx);

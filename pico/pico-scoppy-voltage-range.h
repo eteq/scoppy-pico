@@ -3,7 +3,7 @@
  *
  * Copyright (C) 2021 FHDM Apps <scoppy@fhdm.xyz>
  * https://github.com/fhdm-dev
- * 
+ *
  * scoppy-pico is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -20,18 +20,7 @@
 
 #pragma once
 
-float scoppy_float_from_4_network_bytes(const void *buf);
+#include <stdint.h>
 
-uint64_t scoppy_uint64_from_8_network_bytes(const void *buf);
-
-int32_t scoppy_int32_from_4_network_bytes(const void *buf);
-uint32_t scoppy_uint32_from_4_network_bytes(const void *buf);
-
-int16_t scoppy_int16_from_2_network_bytes(const void *buf);
-uint16_t scoppy_uint16_from_2_network_bytes(const void *buf);
-uint8_t scoppy_uint8_from_1_network_byte(const void *buf);
-
-void scoppy_uint32_to_3_network_bytes(void *buf, uint32_t value);
-void scoppy_uint32_to_4_network_bytes(void *buf, uint32_t value);
-void scoppy_int32_to_4_network_bytes(void *buf, int32_t value);
-void scoppy_uint16_to_2_network_bytes(void *buf, uint16_t value);
+uint8_t pico_scoppy_get_voltage_range_id(int channel_id);
+void pico_scoppy_on_voltage_range_changed(uint8_t channel, uint8_t range_id);

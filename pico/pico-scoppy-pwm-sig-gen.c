@@ -26,6 +26,7 @@
 #include "hardware/pwm.h"
 #include "pico/stdlib.h"
 //
+#include "pico-scoppy-pins.h"
 #include "pico-scoppy-pwm-sig-gen.h"
 #include "pico-scoppy-util.h"
 
@@ -110,7 +111,7 @@ static void init_sine_wave(uint max_level) {
 
         // levels[i] will be between -max_level and max_level
         levels[i] = sine * max_level;
-        //printf("%d, %lf, %lf, %d\n", i, angle, sine, (int)levels[i]);
+        // printf("%d, %lf, %lf, %d\n", i, angle, sine, (int)levels[i]);
     }
 }
 
@@ -173,7 +174,7 @@ static void generate_sine_wave(uint gpio) {
     // With samples_per_period of 250 and top+1 of 250, a div_int of 2 will give a waveform frequency of 1kHz
     static const uint div_int = 2u;
 
-    //static const uint div_int = 255u; // for when debugging
+    // static const uint div_int = 255u; // for when debugging
     static const uint max_level = 250; // A duty cycle of 100% - a level of 0 is a duty cycle of 0%
     static const uint top = max_level - 1;
 
@@ -210,13 +211,21 @@ static void generate_square_wave(uint gpio, uint32_t freq_hz, uint16_t duty_per_
 
     // We want to keep DIV_INT at low as possible so the the duty cycle can be as precise
     // as possible
-    // A a general formula for calulating DIV_INT for a given frequency (freq) is:
+    // A general formula for calulating DIV_INT for a given frequency (freq) is:
     // DIV_INT = ceil(period/(UINT_MAX-1))
     // where period (in clock cycles for freq) = clocksys/freq
+    // UINT16_MAX is 65535
     uint16_t div_int = clk_freq / (freq_hz * (UINT16_MAX - 1));
     div_int++;
 
-    uint32_t top = (clk_freq / (freq_hz * div_int)) - 1;
+    float f_top = ((float)clk_freq / ((float)freq_hz * (float)div_int)) - 1.0f;
+
+    // Round to the nearest integer value
+    uint32_t top = (uint32_t)(f_top + 0.5f);
+    if (top >= UINT16_MAX) {
+        top = UINT16_MAX - 1;
+    }
+
     uint32_t level = ((top + 1UL) * duty_per_cent) / 100UL;
 
     DEBUG_PRINT("  div_int=%u, top=%lu, level=%lu\n", (unsigned)div_int, (unsigned long)top, (unsigned long)level);
@@ -245,8 +254,8 @@ static void pwm_sig_gen_reset(uint gpio) {
 
         // No need to do this because dma_channel_abort will not return until any in-flight transfers have
         // completed. In fact if we call these functions they can???? back indefinitely for some reason.
-        //dma_channel_wait_for_finish_blocking(dma_cc_chan);
-        //dma_channel_wait_for_finish_blocking(dma_control_chan);
+        // dma_channel_wait_for_finish_blocking(dma_cc_chan);
+        // dma_channel_wait_for_finish_blocking(dma_control_chan);
     }
 }
 

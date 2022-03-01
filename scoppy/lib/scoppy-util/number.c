@@ -88,6 +88,13 @@ uint8_t scoppy_uint8_from_1_network_byte(const void *buf) {
     return ((uint16_t)b[0]);
 }
 
+void scoppy_uint32_to_3_network_bytes(void *buf, uint32_t value) {
+    uint8_t *b = (uint8_t *)buf;
+    b[0] = (value >> 16) & 0xFF;
+    b[1] = (value >> 8) & 0xFF;
+    b[2] = (value >> 0) & 0xFF;
+}
+
 void scoppy_uint32_to_4_network_bytes(void *buf, uint32_t value) {
     uint8_t *b = (uint8_t *)buf;
     b[0] = (value >> 24) & 0xFF;

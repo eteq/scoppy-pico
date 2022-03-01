@@ -42,11 +42,15 @@ struct scoppy_context {
     int (*write_serial)(uint8_t *, int, int);
     void (*tight_loop)(void);
     void (*sleep_ms)(uint32_t);
-    int (*debugf)( const char *format, ... );
-    int (*errorf)( const char *format, ... );
+    int (*debugf)(const char *format, ...);
+    int (*errorf)(const char *format, ...);
     void (*start_main_loop)(struct scoppy_context *ctx);
-    //void (*on_sampling_params_changed)(void);
+    // void (*on_sampling_params_changed)(void);
     void (*fatal_error_handler)(int);
     void (*set_status_led)(bool);
     void (*sig_gen)(uint8_t function, unsigned gpio, uint32_t freq, uint16_t duty);
+
+#if AUTO_VOLTAGE_RANGE
+    void (*on_voltage_range_changed)(uint8_t channel, uint8_t range_id);
+#endif
 };

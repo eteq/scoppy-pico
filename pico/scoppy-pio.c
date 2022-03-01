@@ -35,15 +35,29 @@ static PIO pio = pio0;
 
 // StateMachine used for sampling
 static uint sampling_sm = SAMPLING_SM;
-static uint sampling_pin_base = 6;
-static uint sampling_pin_count = 8;
+#ifndef LOGIC_GPIO_BASE
+    #define LOGIC_GPIO_BASE 6
+#endif
+
+#ifndef LOGIC_GPIO_COUNT
+    #define LOGIC_GPIO_COUNT 8
+#endif
+
+// TODO: Allow the LA to be completely disabled by setting
+// LOGIC_GPIO_COUNT to 0
+#if LOGIC_GPIO_COUNT < 1 || LOGIC_GPIO_COUNT > 8
+    #error LOGIC_GPIO_COUNT must be between 1 and 8 inclusive
+#endif
+
+static uint sampling_pin_base = LOGIC_GPIO_BASE;
+static uint sampling_pin_count = LOGIC_GPIO_COUNT;
 static uint sampling_program_offset = 999;
 pio_sm_config sampling_sm_config;
 
 // StateMachine used for triggering
 static uint triggering_sm = TRIGGER_MAIN_SM;
-static uint triggering_pin_base = 6;
-static uint triggering_pin_count = 8;
+static uint triggering_pin_base = LOGIC_GPIO_BASE;
+static uint triggering_pin_count = LOGIC_GPIO_COUNT;
 
 static uint rising_edge_trigger_program_offset = 999;
 pio_sm_config rising_edge_trigger_sm_config;

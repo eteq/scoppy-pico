@@ -44,12 +44,9 @@
 #include "pico-scoppy-non-cont-sampling.h"
 #include "pico-scoppy-samples.h"
 #include "pico-scoppy-util.h"
+#include "pico-scoppy-voltage-range.h"
 #include "pico-scoppy.h"
 
-// Channel 0 is GPIO26
-
-// Using a flag rather than a mutex/sem etc 'cos we're only running on the one
-// core. This will probably have to change if we move to multicore
 static volatile bool request_buffer_swap = false;
 
 static struct sampling_params params1, params2;
@@ -59,8 +56,8 @@ struct sampling_params *dormant_params = &params2;
 void pico_scoppy_init_samplers() {
 
     // Init GPIO for analogue use: hi-Z, no pulls, disable digital input buffer.
-    adc_gpio_init(26);
-    adc_gpio_init(27);
+    adc_gpio_init(SCOPE_CH1_IN_GPIO);
+    adc_gpio_init(SCOPE_CH2_IN_GPIO);
 
     adc_init();
 
@@ -78,11 +75,13 @@ static void stop_sampling() {
 
     // We need to do this or else we get weird behaviour when changing the rrobin mask. If we don't then the following scenario happens:
     // both channels on: first byte is channel 0, second byte is channel 1 => OK
+
     // switch off ch 0: first byte is channel 1 => OK
     // switch on ch 0: first byte is channel 1, second byte is channel 0 => BAD!!! app shows channels swapped
     //
     // Have since found out that we can simply write a 0 to AINSEL
     // See: https://forums.raspberrypi.com/viewtopic.php?t=324786
+    // TODO: Remove this and write 0 to AINSEL instead.
 
     adc_init();
 }
@@ -103,6 +102,23 @@ static void restart_sampling() {
     // Make the values in the now dormant params the same as active params so that we can check if anything has changed
     *dormant_params = *active_params;
 
+    // Try to prevent unused channel from affecting used channel. Maybe I misunderstood what he meant.
+    // https://github.com/fhdm-dev/scoppy/discussions/40
+#if PULL_UNUSED_ADC_TO_GND
+    if (active_params->enabled_channels & 0x00000001) {
+        gpio_disable_pulls(SCOPE_CH1_IN_GPIO);
+    } else {
+        // Reduces noise frequency but increases amplitude
+        gpio_pull_down(SCOPE_CH1_IN_GPIO);
+    }
+
+    if (active_params->enabled_channels & 0x00000002) {
+        gpio_disable_pulls(SCOPE_CH2_IN_GPIO);
+    } else {
+        gpio_pull_down(SCOPE_CH2_IN_GPIO);
+    }
+#endif
+
     if (active_params->get_samples == pico_scoppy_get_non_continuous_samples) {
         pico_scoppy_start_non_continuous_sampling();
     } else if (active_params->get_samples == pico_scoppy_get_continuous_samples) {
@@ -110,16 +126,6 @@ static void restart_sampling() {
     } else {
         // sampling has stopped eg. no channels are configured
         DEBUG_PRINT("  not restarting sampling\n");
-    }
-}
-
-static uint8_t get_voltage_range_id(int channel_id) {
-    if (channel_id == 0) {
-        return (gpio_get(VOLTAGE_RANGE_PIN_CH_0_BIT_1) ? 1u : 0u) << 1 | (gpio_get(VOLTAGE_RANGE_PIN_CH_0_BIT_0) ? 1u : 0u);
-    } else if (channel_id == 1) {
-        return (gpio_get(VOLTAGE_RANGE_PIN_CH_1_BIT_1) ? 1u : 0u) << 1 | (gpio_get(VOLTAGE_RANGE_PIN_CH_1_BIT_0) ? 1u : 0u);
-    } else {
-        return 0;
     }
 }
 
@@ -184,7 +190,7 @@ void pico_scoppy_sampling_loop() {
             last_multicore_msg = MULTICORE_MSG_NONE;
         }
 
-        // Don't get samples too often. We don't want to overload the app.
+        // Don't get samples too often. We don't want to overload the app (does it matter?)
         bool delay = true;
         while (delay) {
             absolute_time_t now = get_absolute_time();
@@ -198,10 +204,11 @@ void pico_scoppy_sampling_loop() {
         }
 
         // update the currently selected voltage range
+        // We need to do this even if AUTO_VOLTAGE_RANGE is defined.
         for (int i = 0; i < MAX_CHANNELS; i++) {
             struct scoppy_channel *ch = &active_params->channels[i];
             if (ch->enabled) {
-                ch->voltage_range = get_voltage_range_id(i);
+                ch->voltage_range = pico_scoppy_get_voltage_range_id(i);
             }
         }
 
