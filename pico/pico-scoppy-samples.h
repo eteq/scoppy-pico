@@ -25,8 +25,7 @@
 // This must be an even number
 // Also using powers of 2 because some FFT algorithms require this
 // 2^11 = 2k
-//#define BYTES_TO_SEND_PER_CHANNEL 2048
-#define BYTES_TO_SEND_PER_CHANNEL 2000
+#define BYTES_TO_SEND_PER_CHANNEL 2048
 // 2^17 = 128k
 //#define SINGLE_SHOT_TOTAL_BYTES_TO_SEND 131072 
 #define SINGLE_SHOT_TOTAL_BYTES_TO_SEND 100000 

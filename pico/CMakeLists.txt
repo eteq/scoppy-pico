@@ -41,7 +41,7 @@ endif()
 #
 ##########################################
 
-set(PICO_SCOPPY_VERSION "9")
+set(PICO_SCOPPY_VERSION "10")
 set(SCOPPY_TARGET "scoppy-pico-v${PICO_SCOPPY_VERSION}")
 
 # applies to this directory and below

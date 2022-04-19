@@ -33,6 +33,21 @@
 #include "pico-scoppy.h"
 #include "scoppy_usb.h"
 
+static void init_smps() {
+#if SMPS_LOW_POWER
+    // this is the default. do nothing
+#else
+        gpio_init(SMPS_GPIO);
+        gpio_set_dir(SMPS_GPIO, GPIO_OUT);
+        gpio_put(SMPS_GPIO, true);
+
+        // ignore. for testing only
+        // gpio_init(15);
+        // gpio_set_dir(15, GPIO_OUT);
+        // gpio_put(15, true);
+#endif
+}
+
 static void init_voltage_range_gpio(uint i) {
     if (i >= 0) {
 #if AUTO_VOLTAGE_RANGE
@@ -56,6 +71,9 @@ int main() {
     gpio_init(STATUS_LED_GPIO);
     gpio_set_dir(STATUS_LED_GPIO, GPIO_OUT);
     gpio_put(STATUS_LED_GPIO, 1);
+
+    LOG_PRINT("Initialising SMPS\n");
+    init_smps();
 
     init_voltage_range_gpio(VR_CH1_1_GPIO);
     init_voltage_range_gpio(VR_CH1_0_GPIO);

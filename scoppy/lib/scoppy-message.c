@@ -416,6 +416,15 @@ static void process_sig_gen_message(struct scoppy_context *ctx) {
     ctx->sig_gen(func, gpio, freq, duty);
 }
 
+static void process_sync_required_msg(struct scoppy_context *ctx) {
+    CTX_DEBUG_PRINT(ctx, "Processing sync_required message\n");
+    struct scoppy_incoming *incoming = ctx->incoming;
+    incoming->payload_ok = true;
+
+    // The app wants a sync message sent to it
+    scoppy.app.resync_required = true;
+}
+
 #if AUTO_VOLTAGE_RANGE
 static void process_voltage_range_changed_message(struct scoppy_context *ctx) {
     CTX_DEBUG_PRINT(ctx, "Processing voltage range changed message\n");
@@ -455,6 +464,8 @@ static void process_complete_incoming_message(struct scoppy_context *ctx) {
         process_pre_trigger_samples_message(ctx);
     } else if (incoming->msg_type == SCOPPY_INCOMING_MSG_TYPE_SIG_GEN) {
         process_sig_gen_message(ctx);
+    } else if (incoming->msg_type == SCOPPY_INCOMING_MSG_TYPE_SYNC_REQUIRED) {
+        process_sync_required_msg(ctx);
     } else {
         CTX_LOG_PRINT(ctx, "Unknown message type %d - ignore\n", incoming->msg_type);
     }

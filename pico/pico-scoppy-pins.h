@@ -86,3 +86,7 @@
 #ifndef STATUS_LED_GPIO
     #define STATUS_LED_GPIO PICO_DEFAULT_LED_PIN
 #endif
+
+#ifndef SMPS_GPIO
+    #define SMPS_GPIO 23
+#endif

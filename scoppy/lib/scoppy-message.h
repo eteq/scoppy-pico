@@ -42,6 +42,7 @@
 // 86 is the end of message byte
 #define SCOPPY_INCOMING_MSG_TYPE_PRE_TRIGGER_SAMPLES 87
 #define SCOPPY_INCOMING_MSG_TYPE_VOLTAGE_RANGE_CHANGED 88
+#define SCOPPY_INCOMING_MSG_TYPE_SYNC_REQUIRED 89
 
 struct scoppy_outgoing *scoppy_new_outgoing_sync_msg(struct scoppy_context *ctx);
 struct scoppy_outgoing *scoppy_new_outgoing_samples_msg(uint32_t realSampleRateHz, struct scoppy_channel *channels, bool new_wavepoint_record, bool is_last_message_in_frame, bool is_continuous_mode, bool is_single_shot, int32_t trigger_idx, bool is_logic_mode);
