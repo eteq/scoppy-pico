@@ -36,7 +36,7 @@ static PIO pio = pio0;
 // StateMachine used for sampling
 static uint sampling_sm = SAMPLING_SM;
 #ifndef LOGIC_GPIO_BASE
-    #define LOGIC_GPIO_BASE 6
+    #define LOGIC_GPIO_BASE 2
 #endif
 
 #ifndef LOGIC_GPIO_COUNT

@@ -30,6 +30,13 @@ if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/scoppy-local.cmake")
         add_compile_definitions(${SCOPPY_COMPILE_DEFS})
     endif()
 
+#ERIKMOD
+if(NOT DEFINED SIG_GEN_PWM_GPIO)
+    # PWM signal generator output
+    set(SIG_GEN_PWM_GPIO 20)
+endif()
+#ENDERIKMOD
+
     message(STATUS "  end local definitions")
 
 else()

@@ -28,3 +28,17 @@
 #define MULTICORE_MSG_RESTART_SAMPLING 3
 
 #define GPIO_TO_ADC_INPUT(gpio) ((gpio) - 26)
+
+// Erik's customizations
+
+#define VOLTAGE_RANGE_PIN_CH_0_BIT_1 18
+#define VOLTAGE_RANGE_PIN_CH_0_BIT_0 19
+
+#define VOLTAGE_RANGE_PIN_CH_1_BIT_1 24
+#define VOLTAGE_RANGE_PIN_CH_1_BIT_0 25
+
+#define LED_PIN 13
+
+#define SIG_GEN_PWM_GPIO 20 // did not work, changed in CMakeLists
+
+// ALSO in scoppy-pio.c set the sampling_pin_base / triggering_pin_base to 5
